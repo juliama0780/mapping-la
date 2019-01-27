@@ -1,0 +1,175 @@
+---
+title: "LA Demographics"
+author: "Julia Ma"
+date: "November 25, 2018"
+output: html_document
+---
+
+Mapping LA Project is useful if you'd like to view demographics given a region/neighborhood. However, what if you'd like to view neighborhoods given demographics? The drop-down menu from http://maps.latimes.com/neighborhoods/ works, however is difficult to navigate. Goal: implement dynamic visualization using RShiny to filter by demographic sections then yield regions/neighborhoods.
+
+# Setting up baseline - Region and Neighborhoods
+
+```{r}
+library(rvest)
+library(dplyr)
+
+# import LA neighborhoods and regions
+mainn <- read_html("http://maps.latimes.com/neighborhoods/neighborhood/list/")
+
+# grab links of neighborhoods and regions, format df
+links <- mainn %>% 
+  html_nodes(".datagrid a") %>% 
+  html_attr("href")
+
+links <- paste0("http://maps.latimes.com", links)
+links <- as.data.frame(matrix(links, ncol = 2, byrow = T), 
+                       stringsAsFactors = F)
+names(links) <- c("Neighborhood", "Region")
+
+# str(links)
+n_neighborhood <- length(unique(links[,1])) #272 unique neighborhoods
+
+```
+
+
+# Demographics
+
+## Population - inefficient?
+
+```{r}
+
+#grab population statistics
+
+neighborhoods <- data.frame(NULL)
+
+fcn_popu <- function(website){
+  website <- read_html(website)
+  
+  name <- website %>% 
+    html_nodes("h1") %>% 
+    html_text("href")
+
+  population <- website %>%
+    html_nodes(":nth-child(4) li:nth-child(1) strong") %>%
+    html_text("href") %>%
+    gsub(",", "", .) %>%
+    as.numeric(.)
+
+  sqmi <- website %>%
+    html_nodes(":nth-child(4) li:nth-child(2) strong") %>%
+    html_text("href") %>%
+    as.numeric(.)
+
+  density <- round(population/sqmi, 2)
+
+  return(c(name, population, sqmi, density))
+}
+
+
+demo_popu_raw <- as.data.frame(do.call(rbind, lapply(links[,1], fcn_popu)), ncol = 4)
+
+# format df
+cols_need_num <- 2:4
+demo_popu <- demo_popu_raw[,1:4]
+# apply(levels(demo_popu_raw[,2:4])[demo_popu_raw[,2:4]], as.numeric) -- couldn't use apply over mutiple cols??
+
+demo_popu[,1] <- as.character(demo_popu_raw[,1])
+demo_popu[,2] <- levels(demo_popu_raw[,2])[demo_popu_raw[,2]]
+demo_popu[,3] <- levels(demo_popu_raw[,3])[demo_popu_raw[,3]]
+demo_popu[,4] <- levels(demo_popu_raw[,4])[demo_popu_raw[,4]]
+
+names(demo_popu) <- c("Name", "Population (2000)", "Sq Mi", "Density")
+
+#some rows have duplicated names across all columns, remove those duplicates
+duplicates <- which(demo_popu[,1] == demo_popu[,2])
+demo_popu[duplicates, 2:4] <- NA
+
+#View webscraped data
+
+# summary(demo_popu) many NA's
+# View(demo_popu[demo_popu[,1] %in% demo_popu[,2],]) have NA data
+```
+
+
+# Region and Demographics - Efficient?? all demo at once
+
+## Initiate df with column of names
+```{r}
+
+df <- read_html("http://maps.latimes.com/neighborhoods/neighborhood/list/") %>% 
+  html_nodes("td:nth-child(1) a") %>% 
+  html_text("href")
+df <- df[-273] # drop extra last row
+df <- as.data.frame(df, ncol = 1)
+names(df) <- "Neighborhood"
+```
+
+## Scrape Demographics to add to df
+```{r}
+all <- as.character(unlist(read.csv("urllist.txt", header = F)))
+demographics_keyword <- c("/list/")
+demographics_links <- all[grepl(paste(demographics_keyword, collapse = "|"), all)]
+demographics_links <- demographics_links[-1] #remove first extra element
+
+#fill in missing links unavailable from the sitemap
+
+demographics_links <- c(demographics_links, 
+                        "http://maps.latimes.com/neighborhoods/owners/neighborhood/list/",
+                        "http://maps.latimes.com/neighborhoods/renters/neighborhood/list/",
+"http://maps.latimes.com/neighborhoods/area/square-miles/neighborhood/list/",
+"http://maps.latimes.com/neighborhoods/ethnicity/non-white/neighborhood/list/", 
+"http://maps.latimes.com/neighborhoods/population/total/neighborhood/list/")
+
+demographics_links <- demographics_links[order(demographics_links)]
+
+# number of demographic links is 48, which matches the drop-down-bar
+# 
+
+# begin scraping demographcs!
+
+  #start w example
+  example_demographic <- str(read_html(demographics_links[1])  %>% 
+    html_nodes("table") %>% 
+    html_table())
+    
+
+
+
+
+
+# 
+# #convert from giant list to df
+# one_df <- do.call(rbind, one_df) %>% 
+#   select(-Rank) 
+# nrow(one_df) == 265 #check if all demographic tables have 265 observ
+# 
+# #convert percentages to decimals
+# one_df[,2] <- as.numeric(gsub("%", "", one_df[,2])) / 100
+# 
+# #merge to df
+# final <- left_join(df, one_df, by = "Neighborhood")
+
+
+#fcn for all tables
+
+fcn_popu <- function(websites){
+  one_df <- read_html(websites) %>% 
+  html_nodes("#sortable_table") %>% 
+  html_table()
+
+  #convert from giant list to df
+  one_df <- do.call(rbind, one_df) %>% 
+    select(-Rank) 
+  nrow(one_df) == 265 #check if all demographic tables have 265 observ
+  
+  #convert percentages to decimals
+  one_df[,2] <- as.numeric(gsub("%", "", one_df[,2])) / 100
+  
+  #merge to df
+  left_join(df, one_df, by = "Neighborhood")
+}
+
+
+
+
+```
