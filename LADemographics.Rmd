@@ -36,57 +36,56 @@ n_neighborhood <- length(unique(links[,1])) #272 unique neighborhoods
 ## Population - inefficient?
 
 ```{r}
-
-#grab population statistics
-
-neighborhoods <- data.frame(NULL)
-
-fcn_popu <- function(website){
-  website <- read_html(website)
-  
-  name <- website %>% 
-    html_nodes("h1") %>% 
-    html_text("href")
-
-  population <- website %>%
-    html_nodes(":nth-child(4) li:nth-child(1) strong") %>%
-    html_text("href") %>%
-    gsub(",", "", .) %>%
-    as.numeric(.)
-
-  sqmi <- website %>%
-    html_nodes(":nth-child(4) li:nth-child(2) strong") %>%
-    html_text("href") %>%
-    as.numeric(.)
-
-  density <- round(population/sqmi, 2)
-
-  return(c(name, population, sqmi, density))
-}
-
-
-demo_popu_raw <- as.data.frame(do.call(rbind, lapply(links[,1], fcn_popu)), ncol = 4)
-
-# format df
-cols_need_num <- 2:4
-demo_popu <- demo_popu_raw[,1:4]
-# apply(levels(demo_popu_raw[,2:4])[demo_popu_raw[,2:4]], as.numeric) -- couldn't use apply over mutiple cols??
-
-demo_popu[,1] <- as.character(demo_popu_raw[,1])
-demo_popu[,2] <- levels(demo_popu_raw[,2])[demo_popu_raw[,2]]
-demo_popu[,3] <- levels(demo_popu_raw[,3])[demo_popu_raw[,3]]
-demo_popu[,4] <- levels(demo_popu_raw[,4])[demo_popu_raw[,4]]
-
-names(demo_popu) <- c("Name", "Population (2000)", "Sq Mi", "Density")
-
-#some rows have duplicated names across all columns, remove those duplicates
-duplicates <- which(demo_popu[,1] == demo_popu[,2])
-demo_popu[duplicates, 2:4] <- NA
-
-#View webscraped data
-
-# summary(demo_popu) many NA's
-# View(demo_popu[demo_popu[,1] %in% demo_popu[,2],]) have NA data
+# #grab population statistics
+# 
+# neighborhoods <- data.frame(NULL)
+# 
+# fcn_popu <- function(website){
+#   website <- read_html(website)
+#   
+#   name <- website %>% 
+#     html_nodes("h1") %>% 
+#     html_text("href")
+# 
+#   population <- website %>%
+#     html_nodes(":nth-child(4) li:nth-child(1) strong") %>%
+#     html_text("href") %>%
+#     gsub(",", "", .) %>%
+#     as.numeric(.)
+# 
+#   sqmi <- website %>%
+#     html_nodes(":nth-child(4) li:nth-child(2) strong") %>%
+#     html_text("href") %>%
+#     as.numeric(.)
+# 
+#   density <- round(population/sqmi, 2)
+# 
+#   return(c(name, population, sqmi, density))
+# }
+# 
+# 
+# demo_popu_raw <- as.data.frame(do.call(rbind, lapply(links[,1], fcn_popu)), ncol = 4)
+# 
+# # format df
+# cols_need_num <- 2:4
+# demo_popu <- demo_popu_raw[,1:4]
+# # apply(levels(demo_popu_raw[,2:4])[demo_popu_raw[,2:4]], as.numeric) -- couldn't use apply over mutiple cols??
+# 
+# demo_popu[,1] <- as.character(demo_popu_raw[,1])
+# demo_popu[,2] <- levels(demo_popu_raw[,2])[demo_popu_raw[,2]]
+# demo_popu[,3] <- levels(demo_popu_raw[,3])[demo_popu_raw[,3]]
+# demo_popu[,4] <- levels(demo_popu_raw[,4])[demo_popu_raw[,4]]
+# 
+# names(demo_popu) <- c("Name", "Population (2000)", "Sq Mi", "Density")
+# 
+# #some rows have duplicated names across all columns, remove those duplicates
+# duplicates <- which(demo_popu[,1] == demo_popu[,2])
+# demo_popu[duplicates, 2:4] <- NA
+# 
+# #View webscraped data
+# 
+# # summary(demo_popu) many NA's
+# # View(demo_popu[demo_popu[,1] %in% demo_popu[,2],]) have NA data
 ```
 
 
@@ -158,6 +157,36 @@ for(i in seq_along(demographics_links)){
   df <- left_join(df, cleaned_demo, by = "Neighborhood")
 }
 
-##next time: figure out how to use Rselenium library to have a more exhaustive demographic option list (https://www.r-bloggers.com/scraping-with-selenium/)
+#rename cols 24:27
+names(df)[24:27] <- c("20k income or less percent of households", 
+                      "20k to 40k income percent of households", 
+                      "40k to 60k income percent of households", 
+                      "60k to 125k income percent of households")
   
+```
+
+# data exploration
+```{r}
+# summary(df)
+# lapply(df, function(x) which(is.na(x)))
+# therefore remove corresponding rows
+
+# dim(df)
+# dim(df[-unlist((lapply(df, function(x) which(is.na(x)))[2])),])
+
+df_clean <- df[-unlist((lapply(df, function(x) which(is.na(x)))[2])),]
+
+hist(df$`Age 10 or less (%)`)
+```
+
+#shiny?
+
+```{r}
+library(shiny)
+ui <- fluidPage()
+server <- function(input, output){}
+
+shinyApp(ui = ui, server = server)
+
+# learning through https://vimeo.com/rstudioinc/review/131218530/212d8a5a7a/#t=2m14s at 21:40
 ```
