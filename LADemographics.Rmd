@@ -179,14 +179,7 @@ df_clean <- df[-unlist((lapply(df, function(x) which(is.na(x)))[2])),]
 hist(df$`Age 10 or less (%)`)
 ```
 
-#shiny?
-
+#shiny? to be continued. . .. 
 ```{r}
-library(shiny)
-ui <- fluidPage()
-server <- function(input, output){}
 
-shinyApp(ui = ui, server = server)
-
-# learning through https://vimeo.com/rstudioinc/review/131218530/212d8a5a7a/#t=2m14s at 21:40
 ```
