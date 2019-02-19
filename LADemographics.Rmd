@@ -143,6 +143,7 @@ clean_demo <- function(demo){
 ```  
 
 ### merge all the demographics info together
+
 ```{r}
 library(dplyr)
 
@@ -158,26 +159,55 @@ for(i in seq_along(demographics_links)){
 }
 
 #rename cols 24:27
-names(df)[24:27] <- c("20k income or less percent of households", 
-                      "20k to 40k income percent of households", 
-                      "40k to 60k income percent of households", 
-                      "60k to 125k income percent of households")
+names(df)[23:27] <- c("Median income 125k and up (%)", 
+                      "Median income 20k income or less (%)", 
+                      "Median income 20k to 40k income (%)", 
+                      "Median income 40k to 60k income (%)", 
+                      "Median income 60k to 125k income (%)")
   
 ```
 
-# data exploration
+
+# webscrape double-check c:
+
+We learn that 7 neighborhoods listed by LA Times do not have any statistical information. These neighborhoods are `r `
+Remove NA rows `r cat(df[narows, 1], sep=", ")`.
+
 ```{r}
 # summary(df)
+#each variable has 7 observations with NA, they may all be the same rows.
 # lapply(df, function(x) which(is.na(x)))
-# therefore remove corresponding rows
+#they are, so remove crspdng rows
 
-# dim(df)
-# dim(df[-unlist((lapply(df, function(x) which(is.na(x)))[2])),])
+narows <- lapply(df, function(x) which(is.na(x)))[[2]]
+df_clean <- df[-narows,]
 
-df_clean <- df[-unlist((lapply(df, function(x) which(is.na(x)))[2])),]
+#7 NA rows. each of their variables are NA, so simply drop.
 
-hist(df$`Age 10 or less (%)`)
+navariables <- which(is.na(df %>% 
+  select("Age 10 or less (%)":"Age 65 and up (%)") %>% 
+  rowSums()))
+
+print(head(df_clean))
 ```
+
+Is this how the data should be organized? There's clearly distinctive vaiables (age, race, veteran's) that perhaps we can reorder the data to be longer or split into multiple dfs.
+
+## age
+
+
+```{r}
+# library(ggplot2)
+# 
+# df_clean[,2] %>% 
+#   ggplot(aes(x=percentage)) +
+#   geom_histogram()
+
+
+```
+
+# data exploration
+
 
 #shiny? to be continued. . .. 
 ```{r}
