@@ -188,23 +188,12 @@ navariables <- which(is.na(df %>%
   select("Age 10 or less (%)":"Age 65 and up (%)") %>% 
   rowSums()))
 
-print(head(df_clean))
+write.csv(df_clean, file = "demog_data.csv")
 ```
 
-Is this how the data should be organized? There's clearly distinctive vaiables (age, race, veteran's) that perhaps we can reorder the data to be longer or split into multiple dfs.
-
-## age
+Still need to remove commas from popu and popu total. Is this how the data should be organized? There's clearly distinctive vaiables (age, race, veteran's) that perhaps we can reorder the data to be longer or split into multiple dfs. What to do with crime stats; they are updated every week?
 
 
-```{r}
-# library(ggplot2)
-# 
-# df_clean[,2] %>% 
-#   ggplot(aes(x=percentage)) +
-#   geom_histogram()
-
-
-```
 
 # data exploration
 
